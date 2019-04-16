@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
-
 import scrapy
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.loader import ItemLoader
-
 from reviewsscrapy.items import ReviewsItem
 
 
-class AutopiaSpider(CrawlSpider):
-    name = 'ag'
-    allowed_domains = ['autogeek.net']
-    start_urls = ['https://www.autogeek.net/']
+class AutoGeekSpider(CrawlSpider):
+    name = 'autopia'
+    allowed_domains = ['autopia-carcare.com']
+    start_urls = ['https://www.autopia-carcare.com']
 
     rules = (
-        Rule(LinkExtractor(restrict_xpaths="//ul[@class='cat-nav']", unique=True),
+        Rule(LinkExtractor(restrict_xpaths="//ul[@id='leftnav-top']", unique=True),
              callback="parse_review", follow=True),
         Rule(LinkExtractor(restrict_xpaths="//div[@id='contents-table']", unique=True),
              callback="parse_review", follow=True),

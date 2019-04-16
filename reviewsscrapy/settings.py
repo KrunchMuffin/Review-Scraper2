@@ -10,7 +10,7 @@
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
 BOT_NAME = 'reviewsscrapy'
-
+CLOSESPIDER_ERRORCOUNT = 1
 SPIDER_MODULES = ['reviewsscrapy.spiders']
 NEWSPIDER_MODULE = 'reviewsscrapy.spiders'
 
