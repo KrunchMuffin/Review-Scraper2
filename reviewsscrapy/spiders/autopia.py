@@ -1,67 +1,56 @@
 # -*- coding: utf-8 -*-
-import scrapy
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.loader import ItemLoader
-from reviewsscrapy.items import ReviewsItem
+from reviewsscrapy.items import ReviewsItem, ProductsItem
+import logging
 
 
-class AutoGeekSpider(CrawlSpider):
+class AutopiaSpider(CrawlSpider):
     name = 'autopia'
     allowed_domains = ['autopia-carcare.com']
-    start_urls = ['https://www.autopia-carcare.com']
+    start_urls = ['https://www.autopia-carcare.com/']
 
     rules = (
-        Rule(LinkExtractor(restrict_xpaths="//ul[@id='leftnav-top']", unique=True),
-             callback="parse_review", follow=True),
-        Rule(LinkExtractor(restrict_xpaths="//div[@id='contents-table']", unique=True),
-             callback="parse_review", follow=True),
-        Rule(LinkExtractor(restrict_xpaths="//div[@class='pdReviewsViewAllBtn']", unique=True),
-             callback="parse_review", follow=True),
-        )
+        Rule(LinkExtractor(restrict_xpaths=(['//ul[@class="cat-nav"]',
+                                             '//div[@id="contents-table"]',
+                                             ]),
+                           unique=True, deny=r"https://myaccount.autopia-carcare.com/.+"), callback=None),
+        Rule(LinkExtractor(deny=r"https://myaccount.autopia-carcare.com/.+"), callback="parse_review", follow=False),
+    )
 
-    # .//div[@class='pdReviewsPagingArrow pdRight']/a
-    def parse_review(self, response):
-
-        # //div[@class='pdPrWrapper'] --> all reviews
-        # //span[@class='pdPrSummaryTitleItemName']/a/text()  --> product name
-        # //div[@class='pdPrListOverallRating']/div --> star rating
-        # //div[@class='pdPrReviewsName']/text() --> reviewer name
-        # //div[@class='pdPrReviewDate']/text() --> review date
-        # //div[@class='pdPrTitle']/text() --> review title
-        # //div[@class='pdPrBody']/text() --> review body
-        # //div[@class='pdPrListPros']/text() --> pros
-        # //div[@class='pdPrListCons']/text() --> cons
+    @staticmethod
+    def parse_review(response):
+        # if item:
+        print(response.xpath("//span[@class='pdPrSummaryTitleItemName']/a/text()").get())
+        ploader = ItemLoader(ProductsItem(), response=response)
+        ploader.add_xpath('_id', "//span[@class='pdPrSummaryTitleItemName']/a/text()")
+        ploader.add_xpath('price', "//span[@class='pdPrSummaryProductPrice']/text()")
+        ploader.add_value('scraped_from', response.request.url)
+        ploader.add_xpath('image_urls', "//a[@itemprop='contentUrl']/@href")
+        yield ploader.load_item()
 
         for review in response.xpath("//div[@class='pdPrWrapper']"):
-            loader = ItemLoader(ReviewsItem(), selector=review, response=response)
-            loader.add_xpath('product', "//span[@class='pdPrSummaryTitleItemName']/a/text()")
+            is_verified: bool = False
+            loader = ItemLoader(ReviewsItem(), response=response, selector=review)
+            loader.add_xpath('product_id', "//span[@class='pdPrSummaryTitleItemName']/a/text()")
+            is_verified = len(response.xpath(".//div[@class='pdPrVerifiedBuyer']")) > 0
             loader.add_xpath('rating', "count(.//div[@class='pdPrListOverallRating']/div/span)")
-            loader.add_xpath('reviewer', ".//div[@class='pdPrReviewsName']/text()")
-            loader.add_xpath('revdate', ".//div[@class='pdPrReviewDate']/text()")
-            loader.add_xpath('title', ".//div[@class='pdPrTitle']/text()")
-            loader.add_xpath('body', ".//div[@class='pdPrBody']/text()")
+            loader.add_xpath('reviewer', ".//div[@class='pdPrReviewsName']")
+            loc = response.xpath(".//div[@class='pdPrReviewerLocation']/text()").get()
+            if loc is None or len(loc.strip()) == 0:
+                loc = "N/A"
+            loader.add_value('reviewer_location', loc)
+            loader.add_value('is_verified', "Yes" if is_verified == 1 else "No")
+            loader.add_xpath('revdate', ".//div[@class='pdPrReviewDate']")
+            loader.add_xpath('title', ".//div[@class='pdPrTitle']")
+            loader.add_xpath('body', ".//div[@class='pdPrBody']")
             loader.add_xpath('pros', ".//div[@class='pdPrListPros']/text()")
             loader.add_xpath('cons', ".//div[@class='pdPrListCons']/text()")
+            loader.add_xpath('image_urls', ".//div[@class='pdPrReviewPhotos']/a/@href")
             loader.add_value('scraped_from', response.request.url)
+            loader.add_value('website', 'autopia')
+
             yield loader.load_item()
-
-            # yield {
-            #     'product': response.xpath(".//span[@class='pdPrSummaryTitleItemName']/a/text()").extract_first(),
-            #     'rating': review.xpath("count(.//div[@class='pdPrListOverallRating']/div/span)"),
-            #     'reviewer': review.xpath(".//div[@class='pdPrReviewsName']/text()").extract_first(),
-            #     'revdate': review.xpath(".//div[@class='pdPrReviewDate']/text()").extract_first(),
-            #     'title': review.xpath(".//div[@class='pdPrTitle']/text()").extract_first(),
-            #     'body': review.xpath(".//div[@class='pdPrBody']/text()").extract_first(),
-            #     'pros': review.xpath(".//div[@class='pdPrListPros']/text()").extract_first(),
-            #     'cons': review.xpath(".//div[@class='pdPrListCons']/text()").extract_first(),
-            #     }
-
-            next_page = response.selector.xpath("//div[@class='pdReviewsPagingArrow pdRight']/a/@href").extract_first()
-
-            if next_page is not None:
-                next_page_link = response.urljoin(next_page)
-                yield scrapy.Request(url=next_page_link, callback=self.parse)
-
-    # def absolute_url(self, url, loader_context):
-    #     return loader_context['response'].urljoin(url)
+    # else:
+    #     logging.warning('No item received for %s', response.url)

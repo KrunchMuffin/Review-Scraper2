@@ -15,13 +15,28 @@ SPIDER_MODULES = ['reviewsscrapy.spiders']
 NEWSPIDER_MODULE = 'reviewsscrapy.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
-
+ITEM_PIPELINES = {
+    'reviewsscrapy.pipelines.MongoProductsPipeline': 300,
+    'reviewsscrapy.pipelines.MongoReviewsPipeline': 400,
+    'scrapy.pipelines.images.ImagesPipeline': 1,
+}
+MONGODB_SERVER = "localhost"
+MONGODB_PORT = 27017
+MONGODB_DB = "dpr"
+MONGODB_COLLECTION = "reviews"
+IMAGES_STORE = 'images'
+LOG_LEVEL = 'DEBUG'
+LOG_STDOUT = True
+IMAGES_THUMBS = {
+    'small': (80, 80),
+    'big': (200, 200),
+}
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-# CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 32
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
