@@ -1,3 +1,4 @@
+images/
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
 # Byte-compiled / optimized / DLL files
@@ -123,3 +124,4 @@ project.egg-info/entry_points.txt
 project.egg-info/PKG-INFO
 project.egg-info/SOURCES.txt
 project.egg-info/top_level.txt
+response.html
